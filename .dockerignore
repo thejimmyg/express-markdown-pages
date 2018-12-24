@@ -1,0 +1,5 @@
+.DS_Store
+.gitignore
+.sw[op]
+domain
+node_modules

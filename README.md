@@ -134,6 +134,11 @@ npm run fix
 
 ## Changelog
 
+### 0.1.2 2018-12-29
+
+* Upgrade to `express-mustache-overlays` 0.3.3 to use `renderView()`.
+* Differentiate between private `.draft.md` pages and public `.md` pages when sending them to the search index.
+
 ### 0.1.1 2018-12-29
 
 * Added `prepareOptions` to `lib/markdown-serve.js`

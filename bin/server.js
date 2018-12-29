@@ -7,12 +7,6 @@ const { makeStaticWithUser, setupMiddleware } = require('express-mustache-jwt-si
 const { markdownServe, prepareOptions } = require('../lib/markdown-serve')
 const markdownRender = require('../lib/markdown-render')
 const chokidar = require('chokidar')
-const { promisify } = require('util')
-const fs = require('fs')
-
-const accessAsync = promisify(fs.access)
-
-// const _ = require('lodash')
 const fetch = require('isomorphic-fetch')
 
 const port = process.env.PORT || 80
@@ -111,7 +105,7 @@ const main = async () => {
   //   }
   // })
 
-  const renderView = await overlays.setup()
+  const { renderView } = await overlays.setup()
 
   app.use(express.static(rootDir, {}))
 
@@ -128,29 +122,20 @@ const main = async () => {
         debug(`Sending ${changed} to the search index due to ${event} ...`)
         const { template, md, options } = await prepareOptions(changed)
         options.content = await markdownRender(md, { codeBlockSwaps })
-        let templatePath
-        for (let i = 0; i < overlays.mustacheDirs.length; i++) {
-          const filePath = path.join(overlays.mustacheDirs[i], template + '.mustache')
-          try {
-            await accessAsync(filePath, fs.constants.R_OK)
-            templatePath = filePath
-            break
-          } catch (e) {
-            // Can't access the file
-          }
+        const html = await renderView(template, options)
+        let pub = true
+        if (changed.endsWith('.draft.md')) {
+          pub = false
         }
-        if (!templatePath) {
-          throw new Error(`Template '${template}' not found`)
-        }
-        const html = await renderView(templatePath, options)
-        debug(html)
+        debug('HTML length: ' + html.length, 'Public: ' + pub)
         const response = await fetch(searchIndexURL, {
           method: 'POST',
           body: JSON.stringify({
             // Strip the directory path, and the .md
             id: changed.slice(rootDir.length, changed.length - 3),
             action: 'put',
-            html: html
+            html,
+            pub
           }),
           headers: {
             'Content-Type': 'application/json',

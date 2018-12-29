@@ -1,11 +1,11 @@
 {
   "name": "express-markdown-pages",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "",
   "main": "lib/index.js",
   "scripts": {
-    "docker:build": "docker build . -t thejimmyg/express-markdown-pages:0.1.0",
-    "docker:push": "docker push thejimmyg/express-markdown-pages:0.1.0",
+    "docker:build": "docker build . -t thejimmyg/express-markdown-pages:0.1.1",
+    "docker:push": "docker push thejimmyg/express-markdown-pages:0.1.1",
     "docker:build:test": "docker build . -t thejimmyg/express-markdown-pages:test",
     "docker:push:test": "docker push thejimmyg/express-markdown-pages:test",
     "docker:run:local": "docker-compose stop && docker-compose pull && docker-compose up --build -d",
@@ -16,11 +16,17 @@
   },
   "author": "James Gardner",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:thejimmyg/express-markdown-pages.git"
+  },
   "dependencies": {
+    "chokidar": "^2.0.4",
     "commonmark": "^0.28.1",
     "express": "^4.16.4",
     "express-mustache-jwt-signin": "^0.3.2",
-    "express-mustache-overlays": "^0.3.0",
+    "express-mustache-overlays": "^0.3.2",
+    "isomorphic-fetch": "^2.2.1",
     "yaml-front-matter": "^4.0.0"
   },
   "devDependencies": {

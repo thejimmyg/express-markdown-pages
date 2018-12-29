@@ -4,18 +4,27 @@ const express = require('express')
 const path = require('path')
 const { prepareMustacheOverlays, setupErrorHandlers } = require('express-mustache-overlays')
 const { makeStaticWithUser, setupMiddleware } = require('express-mustache-jwt-signin')
-const { markdownServe } = require('../lib/markdown-serve')
+const { markdownServe, prepareOptions } = require('../lib/markdown-serve')
 const markdownRender = require('../lib/markdown-render')
+const chokidar = require('chokidar')
+const { promisify } = require('util')
+const fs = require('fs')
+
+const accessAsync = promisify(fs.access)
+
+// const _ = require('lodash')
+const fetch = require('isomorphic-fetch')
 
 const port = process.env.PORT || 80
 const scriptName = process.env.SCRIPT_NAME || ''
 if (scriptName.endsWith('/')) {
   throw new Error('SCRIPT_NAME should not end with /.')
 }
-const rootDir = process.env.ROOT_DIR
+let rootDir = process.env.ROOT_DIR
 if (!rootDir) {
   throw new Error('No ROOT_DIR environment variable set to specify the path of the editable files.')
 }
+rootDir = path.normalize(rootDir)
 const secret = process.env.SECRET
 const signInURL = process.env.SIGN_IN_URL || '/user/signin'
 const signOutURL = process.env.SIGN_OUT_URL || '/user/signout'
@@ -34,6 +43,19 @@ const disabledAuthUser = process.env.DISABLED_AUTH_USER
 const mustacheDirs = process.env.MUSTACHE_DIRS ? process.env.MUSTACHE_DIRS.split(':') : []
 const publicFilesDirs = process.env.PUBLIC_FILES_DIRS ? process.env.PUBLIC_FILES_DIRS.split(':') : []
 const publicURLPath = process.env.PUBLIC_URL_PATH || scriptName + '/public'
+const searchAuthorization = process.env.SEARCH_AUTHORIZATION
+const searchIndexURL = process.env.SEARCH_INDEX_URL
+if (searchIndexURL && !searchAuthorization) {
+  throw new Error('SEARCH_INDEX_URL environment variable specified without SEARCH_AUTHORIZATION')
+}
+if (!searchIndexURL && searchAuthorization) {
+  throw new Error('SEARCH_AUTHORIZATION environment variable specified without SEARCH_INDEX_URL')
+}
+
+const codeBlockSwaps = {}
+codeBlockSwaps['youtube'] = (input) => {
+  return `<iframe width="560" height="315" src="https://www.youtube.com/embed/${input.replace(/^\s+|\s+$/g, '')}" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`
+}
 
 const main = async () => {
   const app = express()
@@ -77,11 +99,7 @@ const main = async () => {
 
   // app.use(bodyParser.urlencoded({ extended: true }))
 
-  const codeBlockSwaps = {}
-  codeBlockSwaps['youtube'] = (input) => {
-    return `<iframe width="560" height="315" src="https://www.youtube.com/embed/${input.replace(/^\s+|\s+$/g, '')}" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`
-  }
-  markdownServe(app, '*', rootDir, (input) => {
+  markdownServe(app, '*', rootDir, async (input) => {
     return markdownRender(input, { codeBlockSwaps })
   })
   // app.get(scriptName, async (req, res, next) => {
@@ -93,12 +111,65 @@ const main = async () => {
   //   }
   // })
 
-  overlays.setup()
+  const renderView = await overlays.setup()
+
   app.use(express.static(rootDir, {}))
 
   setupErrorHandlers(app)
 
   app.listen(port, () => console.log(`Example app listening on port ${port}`))
+  if (searchIndexURL) {
+    // Look for changes to mark down files that might need indexing
+    const globs = [path.join(rootDir, '*.md')]
+    debug('Watching these globs:', globs.join(','))
+    const onEvent = async (event, path_) => {
+      try {
+        const changed = path.normalize(path_)
+        debug(`Sending ${changed} to the search index due to ${event} ...`)
+        const { template, md, options } = await prepareOptions(changed)
+        options.content = await markdownRender(md, { codeBlockSwaps })
+        let templatePath
+        for (let i = 0; i < overlays.mustacheDirs.length; i++) {
+          const filePath = path.join(overlays.mustacheDirs[i], template + '.mustache')
+          try {
+            await accessAsync(filePath, fs.constants.R_OK)
+            templatePath = filePath
+            break
+          } catch (e) {
+            // Can't access the file
+          }
+        }
+        if (!templatePath) {
+          throw new Error(`Template '${template}' not found`)
+        }
+        const html = await renderView(templatePath, options)
+        debug(html)
+        const response = await fetch(searchIndexURL, {
+          method: 'POST',
+          body: JSON.stringify({
+            // Strip the directory path, and the .md
+            id: changed.slice(rootDir.length, changed.length - 3),
+            action: 'put',
+            html: html
+          }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': searchAuthorization
+          }
+          // credentials: "same-origin"
+        })
+        debug(response.url, response.status, response.statusText)
+        debug(response.headers)
+        const text = await response.text()
+        debug(text)
+      } catch (e) {
+        debug(e.message, e)
+        throw (e)
+      }
+    }
+    // const throttledEvent = _.throttle(onEvent, 200, { 'trailing': true, 'leading': false })
+    chokidar.watch(rootDir, { ignoreInitial: true, ignored: /(^|[/\\])\../ }).on('all', onEvent)
+  }
 }
 
 main()

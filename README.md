@@ -1,4 +1,4 @@
-# Express Markdown Browse
+# Express Markdown Pages
 
 **CAUTION: Under active development, not suitable for production use for people
 outside the development team yet.**
@@ -15,6 +15,8 @@ You configure the container by setting environment variables:
 * `DEBUG` - The loggers you want to see log output for. e.g. `express-markdown-pages,express-mustache-jwt-signin`.
 * `PORT` - The port you would like the app to run on. Defaults to 80.
 * `SECRET` - The secret string used to sign cookies. Make sure this is a long secret that no-one else knows, otherwise they could forge the user information in your cookies. Make sure you set the `SECRET` variable to the same value in the `signin` container too, otherwise they won't recognose each other's cookies.
+* `SEARCH_INDEX_URL` - The URL to POST to if a markdown file is changed. Must be specified with `SEARCH_AUTHORIZATION`
+* `SEARCH_AUTHORIZATION` - The token to set as the `Authorization` header in the POST to `SEARCH_INDEX_URL`. Must be specified with `SEARCH_INDEX_URL`
 
 ## Docker Example
 
@@ -96,6 +98,17 @@ PORT=8000 DEBUG=express-mustache-jwt-signin,express-mustache-overlays,express-ma
 
 Visit http://localhost:8000.
 
+If you want to test the search indexing to a search server already on port 8000 and configured with a webhook at `/index` that uses the Authorizartion header 123, you could run this command:
+
+```
+PORT=8001 DEBUG=express-mustache-jwt-signin,express-mustache-overlays,express-markdown-pages SECRET=reallysecret DISABLE_AUTH=true DISABLED_AUTH_USER='{"admin": true, "username": "disableduser"}' ROOT_DIR=markdown MUSTACHE_DIRS=./views-markdown SEARCH_INDEX_URL=http://localhost:8000/index SEARCH_AUTHORIZATION=123 npm start
+```
+
+And visit http://localhost:8000 to perform a search.
+
+**Caution: `SEARCH_INDEX_URL` should be set to a secure URL starting `https://` for production use, otherwise the `SEARCH_AUTHORIZATION` token could be sent unencrypted.**
+
+
 You should be able to make requests to routes restricted with `signedIn`
 middleware as long as you have the cookie, or use the JWT in an `Authorization
 header like this:
@@ -120,6 +133,11 @@ npm run fix
 ```
 
 ## Changelog
+
+### 0.1.1 2018-12-29
+
+* Added `prepareOptions` to `lib/markdown-serve.js`
+* Example now watches markdown files and publish them to a search index if `SEARCH_INDEX_URL` and `SEARCH_AUTHORIZATION` are published.
 
 ### 0.1.0 2018-12-12
 

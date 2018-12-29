@@ -160,7 +160,9 @@ const main = async () => {
       }
     }
     // const throttledEvent = _.throttle(onEvent, 200, { 'trailing': true, 'leading': false })
-    chokidar.watch(rootDir, { ignoreInitial: true, ignored: /(^|[/\\])\../ }).on('all', onEvent)
+    chokidar.watch(rootDir, { ignoreInitial: true, ignored: /(^|[/\\])\../ }).on('all', (event, path_) => {
+      setTimeout(() => onEvent(event, path_), 200)
+    })
   }
 }
 

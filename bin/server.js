@@ -118,22 +118,29 @@ const main = async () => {
     debug('Watching these globs:', globs.join(','))
     const onEvent = async (event, path_) => {
       try {
-        const changed = path.normalize(path_)
-        debug(`Sending ${changed} to the search index due to ${event} ...`)
-        const { template, md, options } = await prepareOptions(changed)
-        options.content = await markdownRender(md, { codeBlockSwaps })
-        const html = await renderView(template, options)
         let pub = true
-        if (changed.endsWith('.draft.md')) {
-          pub = false
+        let html = ''
+        let action = 'put'
+        const changed = path.normalize(path_)
+        // Strip the directory path, and the .md
+        const id = changed.slice(rootDir.length, changed.length - 3)
+        if (event === 'unlink') {
+          action = 'remove'
+        } else {
+          debug(`Sending ${changed} to the search index due to ${event} ...`)
+          const { template, md, options } = await prepareOptions(changed)
+          options.content = await markdownRender(md, { codeBlockSwaps })
+          html = await renderView(template, options)
+          if (changed.endsWith('.draft.md')) {
+            pub = false
+          }
         }
-        debug('HTML length: ' + html.length, 'Public: ' + pub)
+        debug('ID: ' + id + ', Action: ' + action + ', HTML length: ' + html.length, ', Public: ' + pub)
         const response = await fetch(searchIndexURL, {
           method: 'POST',
           body: JSON.stringify({
-            // Strip the directory path, and the .md
-            id: changed.slice(rootDir.length, changed.length - 3),
-            action: 'put',
+            id,
+            action,
             html,
             pub
           }),

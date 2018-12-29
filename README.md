@@ -134,6 +134,10 @@ npm run fix
 
 ## Changelog
 
+### 0.1.3 2018-12-29
+
+* Send `remove` requests to the search index if a file is deleted or moved.
+
 ### 0.1.2 2018-12-29
 
 * Upgrade to `express-mustache-overlays` 0.3.3 to use `renderView()`.

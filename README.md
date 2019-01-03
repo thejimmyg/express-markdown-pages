@@ -134,6 +134,10 @@ npm run fix
 
 ## Changelog
 
+### 0.1.5 2019-01-02
+
+* Handle SIGTERM
+
 ### 0.1.4 2018-12-29
 
 * Introduced a 200ms delay on watched file events before sending them to the search index to allow all filsystem layers to be aware of the changes. Without this, you sometimes see HTML pages without the rendered markdown content being posted to the search index when the volume being changed is mounted in Docker.

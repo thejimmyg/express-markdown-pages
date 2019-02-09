@@ -1,0 +1,38 @@
+{
+  "name": "express-markdown-pages-example",
+  "version": "0.1.6",
+  "description": "",
+  "main": "lib/index.js",
+  "scripts": {
+    "docker:sync": "echo 'Docker cannnot copy files from a parent directory so we need to put the current dev version of express-markdown-pages in this directory and change package.json'; mkdir -p express-markdown-pages ; rsync --delete --exclude='*.DS_Store' --exclude='example' --exclude='.git' --exclude='node_modules' -aHxv ../ express-markdown-pages/ ; cat package.json | sed -e 's|file:..|file:express-markdown-pages|g' > package.json.docker",
+    "docker:build": "npm run docker:sync; docker build . -t thejimmyg/express-markdown-pages:0.1.6",
+    "docker:push": "docker push thejimmyg/express-markdown-pages:0.1.6",
+    "docker:tag:test": "docker image tag thejimmyg/express-markdown-pages:0.1.6 thejimmyg/express-markdown-pages:test",
+    "docker:push:test": "docker push thejimmyg/express-markdown-pages:test",
+    "docker:run:local": "npm run docker:sync && docker-compose stop && docker-compose pull && docker-compose up --build -d",
+    "docker:stop:local": "docker-compose stop",
+    "docker:logs:local": "docker-compose logs --tail='all' -f",
+    "start": "node server.js",
+    "fix": "standard --fix"
+  },
+  "author": "James Gardner",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:thejimmyg/express-markdown-pages.git"
+  },
+  "dependencies": {
+    "body-parser": "^1.18.3",
+    "bootstrap-flexbox-overlay": "^0.1.2",
+    "cookie-parser": "^1.4.3",
+    "express": "^4.16.4",
+    "express-markdown-pages": "file:..",
+    "express-mustache-jwt-signin": "^0.5.3",
+    "express-mustache-overlays": "^0.5.2",
+    "express-public-files-overlays": "^0.1.2",
+    "express-render-error": "^0.1.2"
+  },
+  "devDependencies": {
+    "standard": "^12.0.1"
+  }
+}

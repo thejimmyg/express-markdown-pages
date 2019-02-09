@@ -2,7 +2,7 @@ version: "3"
 services:
   gateway:
     restart: unless-stopped
-    image: thejimmyg/gateway-lite:0.2.5
+    image: thejimmyg/gateway-lite:0.2.13
     ports:
       - "80:80"
       - "443:443"
@@ -19,22 +19,27 @@ services:
       --proxy '
         www.example.localhost:
           - ["/user", "signin:8000/user", {"limit": "100mb"}]
+          - ["/search", "search:80/search", {"limit": "100mb"}]
           - ["/", "markdown:80/", {"limit": "100mb"}]
       '
       --domain domain
     links:
       - markdown:markdown
       - signin:signin
+      - search:search
   signin:
     restart: unless-stopped
-    image: thejimmyg/express-mustache-jwt-signin:0.3.2
+    image: thejimmyg/express-mustache-jwt-signin:0.5.0
     expose:
       - 8000
     environment:
       SECRET: a3707b31-0319-4b16-90b9-75aeff33752d
       DEBUG: "express-mustache-jwt-signin,express-mustache-overlays"
       PORT: 8000
+      COOKIE_SECURE: "true"
       SCRIPT_NAME: /user
+      SIGN_IN_URL: /user/signin
+      SIGN_OUT_URL: /user/signout
       DASHBOARD_URL: /hello
       # Add this if you want to share the sign in templates with markdown
       MUSTACHE_DIRS: /app/views-markdown
@@ -54,7 +59,10 @@ services:
       SCRIPT_NAME: ""
       PORT: 80
       SIGN_IN_URL: /user/signin
+      SIGN_OUT_URL: /user/signout
       MUSTACHE_DIRS: /app/views-markdown
+      SEARCH_AUTHORIZATION: "ad467a46-af88-4751-84c3-454914280051"
+      SEARCH_INDEX_URL: http://search:80/search/index
       # PUBLIC_FILES_DIRS: /app/public-markdown
     volumes:
       - ./markdown:/app/markdown:rw
@@ -63,3 +71,20 @@ services:
       # If you are working on multiple node modules that don't require compiling, you can always mount them in for debugging:
       # - /Users/james/Desktop/jimmyg/git/express-mustache-overlays:/app/node_modules/express-mustache-overlays:ro
       # - /Users/james/Desktop/jimmyg/git/express-mustache-jwt-signin:/app/node_modules/express-mustache-jwt-signin:ro
+  search:
+    restart: unless-stopped
+    image: thejimmyg/express-sqlite-search:0.1.5
+    environment:
+      SECRET: a3707b31-0319-4b16-90b9-75aeff33752d
+      DEBUG: "express-mustache-jwt-signin,express-mustache-overlays"
+      SIGN_IN_URL: /user/signin
+      SIGN_OUT_URL: /user/signout
+      DASHBOARD_URL: /hello
+      MUSTACHE_DIRS: /app/views-markdown
+      SEARCH_AUTHORIZATION: "ad467a46-af88-4751-84c3-454914280051"
+      DB_DIR: /app/db
+      SCRIPT_NAME: "/search"
+      MUSTACHE_DIRS: /app/views-markdown
+    volumes:
+      - ./db:/app/db:rw
+      - ./views-markdown:/app/views-overlay:ro

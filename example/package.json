@@ -1,13 +1,13 @@
 {
   "name": "express-markdown-pages-example",
-  "version": "0.1.6",
+  "version": "0.2.0",
   "description": "",
   "main": "lib/index.js",
   "scripts": {
     "docker:sync": "echo 'Docker cannnot copy files from a parent directory so we need to put the current dev version of express-markdown-pages in this directory and change package.json'; mkdir -p express-markdown-pages ; rsync --delete --exclude='*.DS_Store' --exclude='example' --exclude='.git' --exclude='node_modules' -aHxv ../ express-markdown-pages/ ; cat package.json | sed -e 's|file:..|file:express-markdown-pages|g' > package.json.docker",
-    "docker:build": "npm run docker:sync; docker build . -t thejimmyg/express-markdown-pages:0.1.6",
-    "docker:push": "docker push thejimmyg/express-markdown-pages:0.1.6",
-    "docker:tag:test": "docker image tag thejimmyg/express-markdown-pages:0.1.6 thejimmyg/express-markdown-pages:test",
+    "docker:build": "npm run docker:sync; docker build . -t thejimmyg/express-markdown-pages:0.2.0",
+    "docker:push": "docker push thejimmyg/express-markdown-pages:0.2.0",
+    "docker:tag:test": "docker image tag thejimmyg/express-markdown-pages:0.2.0 thejimmyg/express-markdown-pages:test",
     "docker:push:test": "docker push thejimmyg/express-markdown-pages:test",
     "docker:run:local": "npm run docker:sync && docker-compose stop && docker-compose pull && docker-compose up --build -d",
     "docker:stop:local": "docker-compose stop",
